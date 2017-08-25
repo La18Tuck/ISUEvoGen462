@@ -29,8 +29,8 @@ When you save the notebook, an HTML file containing the code and output will be 
 2. How to change the working directory
 ```{r}
 #In order for R to know what data you are working with, you need to tell it where to search in your computer. To do this, there are two options: 1) Go to Session in the top menu and choose Set Working Directory and Choose Directory, navigate to where the files are, and pick the folder. 2) Set using the command line with the following commands:
-pwd #prints the working directory to your console; this tells you where you are at
-setwd "insert_path_here" #this allows you to set the working directory. An example path would be "~/Desktop/ISUEvoGen462/Week_1/Example_Data"
+getwd()#prints the working directory to your console; this tells you where you are at
+setwd("insert_path_here") #this allows you to set the working directory. An example path would be "~/Desktop/ISUEvoGen462/Week_1/Example_Data"
 ```
 
 3. How to load a dataset
