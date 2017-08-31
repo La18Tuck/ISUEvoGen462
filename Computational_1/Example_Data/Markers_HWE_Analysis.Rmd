@@ -1,0 +1,117 @@
+---
+title: "Different Markers and HWE Analysis"
+output: html_notebook
+---
+
+#Different Types of Data and How to View in R
+###Preparation:
+1. Navigate to the folder "Example Data" in your GitHub Repository and set as your working directory
+2. Set viewing to decimal rather than exponential (useful for p-values)
+```{r}
+options("scipen" = 10)
+```
+3. Install required packages, adegenet and pegas, and load to your library
+```{r}
+install.packages("adegenet")
+install.packages("pegas")
+install.packages("ade4") #ade4 and ape are required packages and may load automatically when installing adegenet and pegas
+install.packages("ape")
+library(adegenet)
+library(pegas)
+```
+
+##Viewing our different data types
+**1. Sequence data (ex: mitochondrial sequence)**
+Sequence data is often represented as fasta files, which have the filetype .fasta and contain information on the sequence as well as the nucleotide bases. Since this is not a text file that R can read, we will use the packages we downloaded to read the data into R. To look at the data first, you can open the .fasta file in any text editor on your computer.
+```{r}
+mitoseq <- fasta2DNAbin("mitoseq.fasta", quiet=FALSE, chunkSize=10, snpOnly=FALSE)
+#this command imports the fasta sequence into an object that adegenet can read. 
+mitoseq #What does the console tell you about these sequences?
+```
+Data from: Martin et al., Phylogeography of the Endangered Lesser Antillean Iguana (2015)
+
+
+**2. SNP data (ex: single nucleotide polymorphisms from sequencing)**
+SNP data is often represented as txt files with either numeric code for the bases, ex: a=1, c=2, g=3, t=4, or as the nucleotide letters.
+```{r}
+#open a file with SNP data and look at what appears
+read.table("SNPgenotypes.txt", header = TRUE, sep = "\t")
+#that's a really large file! let's assign that data to a variable called SNPs
+SNPs <- read.table("SNPgenotypes.txt", header = TRUE, sep = "\t")
+#you should see the file show up to the right in your environment. If you click on it, it will open a tab above.
+```
+Data from: Hufford Lab here at ISU, Teosinte populations
+
+How can we figure out how many samples there are? How many loci?
+```{r}
+nrow(SNPs) #number of rows in the dataset
+ncol(SNPs) #number of columns
+#*hint, not all of the counted columns are loci*
+```
+
+**3. Microsatellite data**
+This data is often represented as txt files with either numbers for the length of the microsatellite copies, or homozygous/heterozygous coding, or as the copy number of the repeated sequence
+```{r}
+#open a dataset with microsatellite data from the adegenet package
+data(nancycats) #load the data
+nancycats #look at the object for a summary
+raw_nancycats <- genind2df(nancycats) #to see the original raw allelic data for the microsatellites
+raw_nancycats
+```
+**What do the data look like? Can you see what missing data is coded as? How many populations are there? What do the numbers represent?**
+
+#Analyzing Different Types of Genetic Data
+###Now that we know what the data will look like, how do we find out important statistics that will inform our understanding of the actual organism we are studying?
+
+**1. Mitochondrial sequence**
+
+```{r}
+mitoseq #remind yourself what the data looks like
+```
+What might we want to know about different haplotypes represented in this data? Could we test if they are all the same or if they are different? What would that mean about the organisms we are looking at?
+```{r}
+h <- haplotype(mitoseq) #pull out haplotypes from alignment
+diffHaplo(h, 1, 2) #compares haplotypes 1 and 2
+#Try comparing different combinations of sequences. What did you learn about these sequences?
+```
+These are haplotypes, which means that we can't compare alleles at one locus (we are only looking at one set of alleles, and in diploid organisms, there are two sets). Let's look at some data we can use to calculate allele frequencies and test HWE.
+
+**2. SNP data**
+```{r}
+head(SNPs) #shows the first few rows to remind yourself what the data looks like
+SNP_New <- SNPs[, -c(1, 2, 3)] #remove the first three columns that don't have locus data
+colnames(SNP_New) <- gsub("\\.", "_", colnames(SNP_New)) # locus names can't have "."
+ind <- as.character(SNPs$Sample_ID) # labels of the individuals
+population <- as.character(SNPs$Group) # labels of the populations
+FinalSNPData <- df2genind(SNP_New, ploidy = 2, ind.names = ind, pop = population, sep = "/", NA.char = "?") #make the data into an object that can be used with our packages
+FinalSNPData
+summary(FinalSNPData) #get information on observed vs. expected heterozygosity
+hw.test(FinalSNPData, B = 0) #This tests whether loci are in HWE. What do you think the results mean?
+```
+Question: is the test we just ran for HWE with this data informative? How might we get values that are not deviating from HWE?
+
+**3. Microsatellite data**
+```{r}
+nancycats #microsatellite dataset
+summary(nancycats) #what information do you get from this command?
+#compare the observed and expected heterozygosity by eye. Do they look different? How would we test if they are different?
+```
+
+Let's test HWE!
+```{r}
+hw.test(nancycats, B=0)
+```
+What are the results? Why do you think these are the results? What do you think will happen if we analyze just one population of cats?
+
+Let's try it!
+```{r}
+pop_1_cats <- raw_nancycats[raw_nancycats$pop=="P01",] #pull out the data for the cats from population 1
+pop_1_cats <- df2genind(pop_1_cats, ploidy = 2, ncode=3, NA.char = "NA") #convert to an object that can be used by adegenet and pegas
+pop_1_cats #does everything look like it should? if so, can test HWE
+hw.test(pop_1_cats,B=0)
+```
+How are the results from one population different than results across all populations? What can you learn from this?
+
+##Your assignment can be found in the Assignment_1 folder of Computational_1. This assignment is due by **5pm on Thursday, September 7th** (one week from today) and is worth 25 points. See the instructions in the assignment folder for more information.
+
+Making an R notebook file: go to the white paper with a plus sign above the file viewing area, choose R Notebook. Keep the top portion with title and the output, delete everything else. To add chunks, click the insert at the top of the file viewing area, then select R. You can write your code within that area.
